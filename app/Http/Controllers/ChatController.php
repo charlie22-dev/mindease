@@ -56,26 +56,31 @@ class ChatController extends Controller
                 
         ];
 
-        // Call Groq API
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.groq.key'),
-            'Content-Type'  => 'application/json',
-        ])->post('https://api.groq.com/openai/v1/chat/completions', [
-            'model' => 'llama-3.3-70b-versatile',
-            'max_tokens' => 1024,
-            'messages'   => array_merge([$systemPrompt], $history),
-        ]);
-        // Add this temporarily after the ->post() call
-\Log::info('Groq response', [
-    'status' => $response->status(),
-    'body'   => $response->json()
-]);
+        // Call Groq API with error handling
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . config('services.groq.key'),
+                'Content-Type'  => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => 'llama-3.3-70b-versatile',
+                'max_tokens' => 1024,
+                'messages'   => array_merge([$systemPrompt], $history),
+            ]);
 
-        // Handle errors
-        if ($response->failed()) {
+            if ($response->failed()) {
+                \Log::error('Groq API Error', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return response()->json([
+                    'reply' => 'I\'m having trouble connecting to the AI. Please check your API key and try again. 💙'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Groq Exception', ['message' => $e->getMessage()]);
             return response()->json([
-                'reply' => 'Sorry, I\'m having trouble connecting right now. Please try again in a moment. 💙'
-            ], 200);
+                'reply' => 'Connection timed out. Please try again in a moment. 💙'
+            ]);
         }
 
         $aiReply = $response->json('choices.0.message.content')

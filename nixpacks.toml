@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["...", "php83Extensions.pdo_sqlite", "php83Extensions.sqlite3"]
+nixPkgs = ["php83", "php83Extensions.pdo_sqlite", "php83Extensions.sqlite3", "composer"]
 
 [phases.build]
 cmds = [

@@ -34,17 +34,31 @@ class GuestChatController extends Controller
             ->values()
             ->toArray();
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.groq.key'),
-            'Content-Type'  => 'application/json',
-        ])->post('https://api.groq.com/openai/v1/chat/completions', [
-            'model'      => 'llama-3.3-70b-versatile',
-            'max_tokens' => 512,
-            'messages'   => array_merge([$systemPrompt], $history),
-        ]);
+        // Call Groq API with error handling
+        try {
+            $response = Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . config('services.groq.key'),
+                'Content-Type'  => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model'      => 'llama-3.3-70b-versatile',
+                'max_tokens' => 512,
+                'messages'   => array_merge([$systemPrompt], $history),
+            ]);
 
-        if ($response->failed()) {
-            return response()->json(['reply' => 'I\'m having trouble connecting right now. Please try again 💙']);
+            if ($response->failed()) {
+                \Log::error('Guest Groq API Error', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return response()->json([
+                    'reply' => 'I\'m having trouble connecting to the AI. Please try again in a moment. 💙'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Guest Groq Exception', ['message' => $e->getMessage()]);
+            return response()->json([
+                'reply' => 'Connection timed out. Please try again in a moment. 💙'
+            ]);
         }
 
         $reply = $response->json('choices.0.message.content')
