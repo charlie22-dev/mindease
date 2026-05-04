@@ -6,9 +6,9 @@ This project is a full Laravel app (frontend + backend + database), so deploy it
 
 Make sure this repository is in GitHub with these files committed:
 
-- `nixpacks.toml`
-- `Procfile`
-- `scripts/start.sh`
+- `render.yaml`
+- `Dockerfile`
+- `.dockerignore`
 
 ## 2) Create services on Render (free)
 
@@ -16,6 +16,8 @@ This repo now includes `render.yaml` for Blueprint deploy.
 
 - In Render dashboard, choose **New +** -> **Blueprint**.
 - Connect your GitHub repo and select this project.
+
+If your GitHub repository root is NOT the Laravel project folder that contains `artisan`, set **Root Directory** in the blueprint to the correct subfolder (often `mindease`).
 - Render will create:
   - `mindease-web` (free web service)
   - `mindease-db` (free PostgreSQL)
@@ -50,12 +52,15 @@ For Google login, also set:
 
 ## 4) Deploy
 
-On deploy, startup script (`scripts/start.sh`) will:
+During the **Docker build**, `Dockerfile` runs `composer install`.
 
-- run migrations
-- cache config/views
-- create `storage` symlink (non-fatal if already exists)
-- boot Laravel on the platform `PORT`
+On container start (via `serversideup/php` Laravel automations controlled by `AUTORUN_ENABLED`), Render will commonly run:
+
+- migrations
+- Laravel optimization/caches (config/events/routes/views depending on defaults)
+- storage link
+
+Important: do **not** commit a real `.env` to GitHub — set secrets in Render.
 
 ## 5) Google OAuth callback
 

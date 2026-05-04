@@ -1,23 +1,43 @@
 services:
   - type: web
     name: mindease-web
-    runtime: php
+    runtime: docker
     plan: free
+    healthCheckPath: /up
+
+    # If your GitHub repo root is the PARENT folder (`.../mindease/mindease`),
+    # change this to: mindease
     rootDir: .
-    buildCommand: |
-      composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-    startCommand: bash scripts/start.sh
+
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
     envVars:
+      # serversideup/php Laravel automations (startup tasks)
+      - key: AUTORUN_ENABLED
+        value: "true"
+
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: "false"
+
+      # Set after Render gives you your service URL:
+      # example: https://mindease-web.onrender.com
       - key: APP_URL
         sync: false
+
+      # Generate locally: php artisan key:generate --show
       - key: APP_KEY
         sync: false
+
+      # Match serverside nginx image docs (recommended for Docker logs)
+      - key: LOG_CHANNEL
+        value: stderr
+
       - key: DB_CONNECTION
         value: pgsql
+
       - key: DB_HOST
         fromDatabase:
           name: mindease-db
@@ -38,16 +58,21 @@ services:
         fromDatabase:
           name: mindease-db
           property: password
+
+      # Your app ships with SQLite-only queue driver by default; switch to Redis later if needed.
       - key: SESSION_DRIVER
         value: database
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION
-        value: database
+        value: sync
+
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+
+      # Paste EXACTLY: https://YOUR-SERVICE.onrender.com/auth/google/callback
       - key: GOOGLE_REDIRECT_URI
         sync: false
 
