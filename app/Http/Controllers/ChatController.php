@@ -22,13 +22,13 @@ class ChatController extends Controller
     {
         $request->validate(['message' => 'required|string|max:1000']);
 
-        $userId     = Auth::id();
+        $userId = Auth::id();
         $userMessage = $request->input('message');
 
         // Save user message
         Message::create([
             'user_id' => $userId,
-            'role'    => 'user',
+            'role' => 'user',
             'content' => $userMessage,
         ]);
 
@@ -41,7 +41,7 @@ class ChatController extends Controller
 
         // System prompt
         $systemPrompt = [
-            'role'    => 'system',
+            'role' => 'system',
             'content' => "You are MindEase, a highly trained, professional AI clinical therapist and mental health counselor.
                 Your role is to conduct realistic, empathetic, and constructive therapy sessions with the user.
                 
@@ -52,20 +52,20 @@ class ChatController extends Controller
                 4. Tone: Empathetic, warm, but strictly clinical. Avoid toxic positivity, excessive emojis, or overly casual language.
                 5. Pacing: Address one concept at a time. Keep responses concise and focused to avoid overwhelming the user. End with a single, clear question to prompt their reflection.
                 6. Boundaries: Explicitly remind the user you are an AI if asked for a formal medical diagnosis or prescription, but remain engaged in exploring their cognitive patterns. Never offer medical advice.",
-                
-                
+
+
         ];
 
         // Call Groq API with error handling
         try {
             $response = Http::timeout(30)->withHeaders([
                 'Authorization' => 'Bearer ' . config('services.groq.key'),
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
             ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model' => 'llama-3.3-70b-versatile',
-                'max_tokens' => 1024,
-                'messages'   => array_merge([$systemPrompt], $history),
-            ]);
+                        'model' => 'llama-3.3-70b-versatile',
+                        'max_tokens' => 1024,
+                        'messages' => array_merge([$systemPrompt], $history),
+                    ]);
 
             if ($response->failed()) {
                 \Log::error('Groq API Error', [
@@ -89,7 +89,7 @@ class ChatController extends Controller
         // Save AI response
         Message::create([
             'user_id' => $userId,
-            'role'    => 'assistant',
+            'role' => 'assistant',
             'content' => $aiReply,
         ]);
 

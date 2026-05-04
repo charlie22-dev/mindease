@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: mindease-web
+    runtime: php
+    plan: free
+    rootDir: .
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+    startCommand: bash scripts/start.sh
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: mindease-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: mindease-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: mindease-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: mindease-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: mindease-db
+          property: password
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+
+databases:
+  - name: mindease-db
+    databaseName: mindease
+    plan: free
