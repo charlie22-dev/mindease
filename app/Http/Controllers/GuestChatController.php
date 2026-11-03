@@ -12,6 +12,9 @@ class GuestChatController extends Controller
         $request->validate([
             'message' => 'required|string|max:500',
             'history' => 'array|max:20',
+            'history.*' => 'required|array',
+            'history.*.role' => 'required|in:user,assistant',
+            'history.*.content' => 'required|string|max:4000',
         ]);
 
         $systemPrompt = [
@@ -34,31 +37,37 @@ class GuestChatController extends Controller
             ->values()
             ->toArray();
 
+        // Older clients include the current message in history; accept both formats.
+        $currentMessage = ['role' => 'user', 'content' => $request->input('message')];
+        if (end($history) !== $currentMessage) {
+            $history[] = $currentMessage;
+        }
+
         // Call Groq API with error handling
         try {
             $response = Http::timeout(30)->withHeaders([
                 'Authorization' => 'Bearer ' . config('services.groq.key'),
                 'Content-Type'  => 'application/json',
             ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model'      => 'llama-3.3-70b-versatile',
+                'model'      => config('services.groq.model'),
                 'max_tokens' => 512,
                 'messages'   => array_merge([$systemPrompt], $history),
             ]);
 
-            if ($response->failed()) {
+            if ($response->failed() || blank($response->json('choices.0.message.content'))) {
                 \Log::error('Guest Groq API Error', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
                 return response()->json([
                     'reply' => 'I\'m having trouble connecting to the AI. Please try again in a moment. 💙'
-                ]);
+                ], 502);
             }
         } catch (\Exception $e) {
             \Log::error('Guest Groq Exception', ['message' => $e->getMessage()]);
             return response()->json([
                 'reply' => 'Connection timed out. Please try again in a moment. 💙'
-            ]);
+            ], 502);
         }
 
         $reply = $response->json('choices.0.message.content')
