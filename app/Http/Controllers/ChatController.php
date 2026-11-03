@@ -51,8 +51,10 @@ class ChatController extends Controller
                 3. Therapeutic Frameworks: Gently apply evidence-based psychological frameworks where appropriate, such as Cognitive Behavioral Therapy (CBT) or Acceptance and Commitment Therapy (ACT), guiding the user to recognize cognitive distortions or re-align with their values.
                 4. Tone: Empathetic, warm, but strictly clinical. Avoid toxic positivity, excessive emojis, or overly casual language.
                 5. Pacing: Address one concept at a time. Keep responses concise and focused to avoid overwhelming the user. End with a single, clear question to prompt their reflection.
-                6. Boundaries: Explicitly remind the user you are an AI if asked for a formal medical diagnosis or prescription, but remain engaged in exploring their cognitive patterns. Never offer medical advice.",
-
+                6.
+                7. Boundaries: Explicitly remind the user you are an AI if asked for a formal medical diagnosis or prescription, but remain engaged in exploring their cognitive patterns. Never offer medical advice.",
+                
+                
 
         ];
 
@@ -62,25 +64,25 @@ class ChatController extends Controller
                 'Authorization' => 'Bearer ' . config('services.groq.key'),
                 'Content-Type' => 'application/json',
             ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                        'model' => 'llama-3.3-70b-versatile',
+                        'model' => config('services.groq.model'),
                         'max_tokens' => 1024,
                         'messages' => array_merge([$systemPrompt], $history),
                     ]);
 
-            if ($response->failed()) {
+            if ($response->failed() || blank($response->json('choices.0.message.content'))) {
                 \Log::error('Groq API Error', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
                 return response()->json([
                     'reply' => 'I\'m having trouble connecting to the AI. Please check your API key and try again. 💙'
-                ]);
+                ], 502);
             }
         } catch (\Exception $e) {
             \Log::error('Groq Exception', ['message' => $e->getMessage()]);
             return response()->json([
                 'reply' => 'Connection timed out. Please try again in a moment. 💙'
-            ]);
+            ], 502);
         }
 
         $aiReply = $response->json('choices.0.message.content')
