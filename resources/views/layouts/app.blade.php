@@ -466,7 +466,7 @@
                 </div>
             </div>
             @if(session('success'))
-                <div class="alert-success">✓ {{ session('success') }}</div>
+                <div class="alert-success" role="status">{{ session('success') }}</div>
             @endif
             @yield('content')
         </div>
